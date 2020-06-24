@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EchoServer_Ver1", "EchoServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EchoClient_Ver1", "..\EchoClient_Ver1\EchoClient_Ver1.csproj", "{1F06BCCE-2BC9-40A4-81C1-56AA07DF8DBD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerCore", "..\ServerCore\ServerCore.csproj", "{91C1D3FE-7B38-42EA-BB5E-973999678653}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerCore", "..\ServerCore\ServerCore.csproj", "{91C1D3FE-7B38-42EA-BB5E-973999678653}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

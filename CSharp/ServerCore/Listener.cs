@@ -9,14 +9,13 @@ namespace ServerCore
         Socket _listenSocket;
         Action<Socket> _onAcceptHandler;
 
-
         public void Init(IPEndPoint endPoint, Action<Socket> onAcceptHandler)
         {
             _onAcceptHandler += onAcceptHandler;
 
-            Socket listenSocket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            listenSocket.Bind(endPoint);
-            listenSocket.Listen(10);
+            _listenSocket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            _listenSocket.Bind(endPoint);
+            _listenSocket.Listen(10);
 
             SocketAsyncEventArgs args = new SocketAsyncEventArgs();
             args.Completed += new EventHandler<SocketAsyncEventArgs>(OnAcceptCompleted);
@@ -45,7 +44,6 @@ namespace ServerCore
             {
                 Console.WriteLine(args.SocketError.ToString());
             }
-
             RegisterAccept(args); // 다음 아이를 위해 등록
         }
 
