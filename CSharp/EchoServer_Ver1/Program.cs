@@ -21,12 +21,10 @@ namespace EchoServer_Ver1
                 Session session = new Session();
                 session.Start(clientSocket);
 
-
                 byte[] sendBuffer = Encoding.UTF8.GetBytes("Welcome to MMORPG Server!");
                 session.Send(sendBuffer);
 
                 Thread.Sleep(1000);
-                session.Disconnect();
                 session.Disconnect();
             }
             catch (Exception e)
