@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
 namespace ServerCore
 {
-    public class Session
+   public abstract class Session
     {
         Socket _socket;
 
@@ -19,17 +20,48 @@ namespace ServerCore
 
         List<ArraySegment<byte>> _pendinglist = new List<ArraySegment<byte>>(); // 대기 중인 목록이다.
         SocketAsyncEventArgs _sendArgs = new SocketAsyncEventArgs();
+        SocketAsyncEventArgs _recvArgs = new SocketAsyncEventArgs();
+
+
+        public abstract void OnConnected(EndPoint endPoint); // 접속 완료
+        public abstract void OnRecv(ArraySegment<byte> buffer);
+        public abstract void OnSend(int numOfBytes);
+        public abstract void OnDisconnected(EndPoint endPoint);
+
 
         public void Start(Socket socket)
         {
             _socket = socket;
-            SocketAsyncEventArgs recvArgs = new SocketAsyncEventArgs();
-            recvArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnRecvCompleted);
-            recvArgs.SetBuffer(new byte[1024], 0, 1024);
+            _recvArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnRecvCompleted);
+            _recvArgs.SetBuffer(new byte[1024], 0, 1024);
 
             _sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
 
-            RegisterRecv(recvArgs);
+
+            RegisterRecv(_recvArgs);
+        }
+
+        public void Send(byte[] sendBuffer)
+        {
+            lock (_lock)
+            {
+                _sendQueue.Enqueue(sendBuffer);
+                if (_pendinglist.Count == 0)
+                    RegisterSend();
+            }
+        }
+
+
+        public void Disconnect()
+        {
+            if (Interlocked.Exchange(ref _disconnected, 1) == 1)
+            {
+                return;
+            }
+            OnDisconnected(_socket.RemoteEndPoint);
+
+            _socket.Shutdown(SocketShutdown.Both); // 우아하게 종료 시킨다.
+            _socket.Close();
         }
 
         #region 네트워크 통신
@@ -67,8 +99,7 @@ namespace ServerCore
             { 
                 try
                 {
-                    string recvData = Encoding.UTF8.GetString(args.Buffer, args.Offset, args.BytesTransferred);
-                    Console.WriteLine($"[From Client] {recvData}");
+                    OnRecv(new ArraySegment<byte>(args.Buffer, args.Offset, args.BytesTransferred));
 
                     RegisterRecv(args);
                 }
@@ -91,11 +122,10 @@ namespace ServerCore
                 {
                     try
                     {
-
                         _sendArgs.BufferList = null;
                         _pendinglist.Clear();
-                        Console.WriteLine($"Transferred bytes: {_sendArgs.BytesTransferred}");
-
+                        // Console.WriteLine($"Transferred bytes: {_sendArgs.BytesTransferred}");
+                        OnSend(_sendArgs.BytesTransferred);
 
                         if (_sendQueue.Count > 0)
                             RegisterSend();    
@@ -112,28 +142,6 @@ namespace ServerCore
                     Disconnect();
                 }
             }
-        }
-
-        public void Send(byte[] sendBuffer)
-        {
-           // _socket.Send(sendBuffer);
-
-            lock (_lock)
-            {
-                _sendQueue.Enqueue(sendBuffer);
-                if (_pendinglist.Count == 0)
-                    RegisterSend();
-            }
-        }
-
-        public void Disconnect()
-        {
-            if (Interlocked.Exchange(ref _disconnected, 1 ) == 1)
-            {
-                return;
-            }
-            _socket.Shutdown(SocketShutdown.Both); // 우아하게 종료 시킨다.
-            _socket.Close();      
         }
         #endregion
     }

@@ -13,26 +13,39 @@ namespace EchoServer_Ver1
 {
     class Program
     {
-        static Listener _listener = new Listener();
-        static void OnAcceptHandler(Socket clientSocket)
-        {
-            try
-            {
-                Session session = new Session();
-                session.Start(clientSocket);
 
+        class GameSession : Session
+        {
+            // 엔진과 컨텐츠 분리
+            public override void OnConnected(EndPoint endPoint)
+            {
                 byte[] sendBuffer = Encoding.UTF8.GetBytes("Welcome to MMORPG Server!");
-                session.Send(sendBuffer);
+                Send(sendBuffer);
 
                 Thread.Sleep(1000);
-                session.Disconnect();
+                Disconnect();
             }
-            catch (Exception e)
+
+            public override void OnDisconnected(EndPoint endPoint)
             {
-                Console.WriteLine(e.ToString());
+                Console.WriteLine($"OnDisConnected : {endPoint}");
             }
+
+            public override void OnRecv(ArraySegment<byte> buffer)
+            {
+                string recvData = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
+                Console.WriteLine($"[From Client] {recvData}");
+            }
+
+            public override void OnSend(int numOfBytes)
+            {
+                Console.WriteLine($"Transferred bytes: {numOfBytes}");
+            }
+
         }
 
+        static Listener _listener = new Listener();
+  
         static void Main(string[] args)
         {
             // DNS (Domain Name System) 사용
@@ -41,7 +54,7 @@ namespace EchoServer_Ver1
             IPAddress ipAddr = ipHost.AddressList[0];
             IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777); // 식당 번호 / 입구 위치
 
-            _listener.Init(endPoint , OnAcceptHandler);
+            _listener.Init(endPoint, () => { return new GameSession(); });
 
             Console.WriteLine("Listener ...");
             // 손님 한명만 받는건 아니니 무한 루프
